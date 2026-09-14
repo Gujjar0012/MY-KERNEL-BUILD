@@ -1,0 +1,41 @@
+name: Android Kernel Builder Cloud
+on:
+  workflow_dispatch: # Isse aap browser se click karke jab chahein build shuru kar sakte hain
+
+jobs:
+  kernel-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Build Tools
+        run: |
+          sudo apt update
+          sudo apt install -y bc bison build-essential flex git libssl-dev libelf-dev xz-utils ccache
+
+      - name: Download Google Clang Compiler
+        run: |
+          mkdir -p clang
+          cd clang
+          # GitHub action high speed server se toolchain fetch karega
+          wget -q https://googlesource.com
+          tar -xf clang-r487747c.tar.gz
+          cd ..
+
+      - name: Compile Your Kernel Source
+        run: |
+          export PATH="$(pwd)/clang/bin:$PATH"
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CC=clang
+          
+          # NOTE: Agar aapke source code ki defconfig ka naam alag hai, to yahaan gki_defconfig badal lena
+          make O=out defconfig
+          make O=out -j$(nproc)
+
+      - name: Upload Finished Kernel Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-Compiled-Kernel-Image
+          path: out/arch/arm64/boot/Image.gz
