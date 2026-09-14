@@ -12,18 +12,18 @@ jobs:
       - name: Setup Android NDK
         uses: android-actions/setup-android@v3
         with:
-          ndk-version: '25.2.9519653' # Standard stable NDK version
+          ndk-version: '25.2.9519653'
 
       - name: Unzip Source Code
         run: |
-          # Agar aapne poori zip file upload ki hai to use extract karein
           if [ -f kernelsorce.zip ]; then
             unzip kernelsorce.zip
+          elif [ -f kernel-source.zip ]; then
+            unzip kernel-source.zip
           fi
 
       - name: Compile using ndk-build
         run: |
-          # Jahaan Android.mk file hai us directory me jaakar compile karein
           TARGET_DIR=$(find . -name "jni" -type d | head -n 1)
           if [ -d "$TARGET_DIR" ]; then
             cd "$TARGET_DIR"/..
