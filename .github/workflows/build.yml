@@ -1,41 +1,39 @@
-name: Android Kernel Builder Cloud
+name: Compile Android Native Mod Project
 on:
-  workflow_dispatch: # Isse aap browser se click karke jab chahein build shuru kar sakte hain
+  workflow_dispatch:
 
 jobs:
-  kernel-build:
+  build-project:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Build Tools
-        run: |
-          sudo apt update
-          sudo apt install -y bc bison build-essential flex git libssl-dev libelf-dev xz-utils ccache
+      - name: Setup Android NDK
+        uses: android-actions/setup-android@v3
+        with:
+          ndk-version: '25.2.9519653' # Standard stable NDK version
 
-      - name: Download Google Clang Compiler
+      - name: Unzip Source Code
         run: |
-          mkdir -p clang
-          cd clang
-          # GitHub action high speed server se toolchain fetch karega
-          wget -q https://googlesource.com
-          tar -xf clang-r487747c.tar.gz
-          cd ..
+          # Agar aapne poori zip file upload ki hai to use extract karein
+          if [ -f kernelsorce.zip ]; then
+            unzip kernelsorce.zip
+          fi
 
-      - name: Compile Your Kernel Source
+      - name: Compile using ndk-build
         run: |
-          export PATH="$(pwd)/clang/bin:$PATH"
-          export ARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-gnu-
-          export CC=clang
-          
-          # NOTE: Agar aapke source code ki defconfig ka naam alag hai, to yahaan gki_defconfig badal lena
-          make O=out defconfig
-          make O=out -j$(nproc)
+          # Jahaan Android.mk file hai us directory me jaakar compile karein
+          TARGET_DIR=$(find . -name "jni" -type d | head -n 1)
+          if [ -d "$TARGET_DIR" ]; then
+            cd "$TARGET_DIR"/..
+            $ANDROID_NDK_LATEST_HOME/ndk-build
+          else
+            echo "Error: jni folder nahi mila!" && exit 1
+          fi
 
-      - name: Upload Finished Kernel Output
+      - name: Upload Output Compiled Libraries (.so files)
         uses: actions/upload-artifact@v4
         with:
-          name: My-Compiled-Kernel-Image
-          path: out/arch/arm64/boot/Image.gz
+          name: Compiled-Mod-Libraries
+          path: '/libs//*'
